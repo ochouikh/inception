@@ -1,5 +1,7 @@
 FROM debian:bullseye
 
+RUN sleep 10
+
 RUN apt update && apt install -y curl
 
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
@@ -14,8 +16,12 @@ RUN wp core download --allow-root
 
 RUN mv wp-config-sample.php wp-config.php
 
-RUN apt update && apt install -y php-fpm
+RUN apt update && apt install -y php-fpm php-mysql
 
-EXPOSE 3306
+EXPOSE 9000
 
-CMD [ "bash", "tools/script.sh" ]
+WORKDIR /
+
+COPY tools/script.sh .
+
+CMD ["bash", "script.sh"]
