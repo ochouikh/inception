@@ -3,6 +3,7 @@ version: '3'
 services:
 
   mariadb:
+    container_name: mariadb
     build: requirements/mariadb
     image: mariadb
     env_file: .env
@@ -12,7 +13,22 @@ services:
       - chabaka
     restart: on-failure
 
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - mariadb
+      - redis
+    build: requirements/wordpress
+    image: wordpress
+    env_file: .env
+    volumes:
+      - wordpress:/var/www/html
+    networks:
+      - chabaka
+    restart: on-failure
+
   nginx:
+    container_name: nginx
     depends_on:
       - wordpress
     build: requirements/nginx
@@ -26,20 +42,65 @@ services:
       - chabaka
     restart: on-failure
 
-  wordpress:
+  redis:
+    container_name: redis
+    build: requirements/bonus/redis
+    image: redis
+    env_file: .env
+    networks:
+      - chabaka
+    restart: on-failure
+
+  adminer:
+    container_name: adminer
     depends_on:
       - mariadb
-    build: requirements/wordpress
-    image: wordpress
+    build: requirements/bonus/adminer
+    image: adminer
     env_file: .env
+    ports:
+      - '80:80'
+    networks:
+      - chabaka
+    restart: on-failure
+
+  cadvisor:
+    container_name: cadvisor
+    build: requirements/bonus/cadvisor
+    image: cadvisor
+    env_file: .env
+    ports:
+      - '8080:8080'
     volumes:
-      - wordpress:/var/www/html
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - chabaka
+    restart: on-failure
+
+  ftp:
+    container_name: ftp
+    depends_on:
+      - wordpress
+    build: requirements/bonus/ftp
+    image: ftp
+    env_file: .env
+    ports:
+      - '21:21'
+      - '20:20'
+      # - '40000-40005:40000-40005'
+    volumes:
+      - wordpress:/home/ftp_user/ftp/files
     networks:
       - chabaka
     restart: on-failure
 
 volumes:
   wordpress:
+    name: wordpress
     driver: local
     driver_opts:
       device: '/home/ochouikh/data/wordpress'
@@ -47,6 +108,7 @@ volumes:
       type: 'none'
 
   mariadb:
+    name: mariadb
     driver: local
     driver_opts:
       device: '/home/ochouikh/data/mariadb'
@@ -55,3 +117,4 @@ volumes:
 
 networks:
   chabaka:
+    name: chabaka
